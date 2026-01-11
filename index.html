@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jeni AI | Personal GF</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --bg: #000; --card: #111; --text: #fff; --accent: #ff2e63; --msg-bot: #222; }
+        .light-mode { --bg: #f0f2f5; --card: #fff; --text: #000; --msg-bot: #e4e6eb; }
+        * { box-sizing: border-box; margin: 0; padding: 0; transition: 0.3s; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; height: 100dvh; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 500px; background: var(--card); display: flex; flex-direction: column; height: 100%; border: 1px solid #333; }
+        .header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; background: var(--card); }
+        .header h1 { font-size: 1.2rem; color: var(--accent); }
+        #chat-window { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .msg { max-width: 80%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.4; }
+        .user-msg { align-self: flex-end; background: var(--accent); color: white; border-bottom-right-radius: 2px; }
+        .bot-msg { align-self: flex-start; background: var(--msg-bot); color: var(--text); border-bottom-left-radius: 2px; border: 1px solid #444; }
+        .input-area { padding: 15px; background: var(--card); border-top: 1px solid #333; display: flex; gap: 10px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); }
+        input { flex: 1; background: var(--bg); border: 1px solid #444; border-radius: 25px; padding: 12px 20px; color: var(--text); outline: none; }
+        .send-btn { background: var(--accent); border: none; color: white; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .theme-btn { background: none; border: none; color: var(--accent); font-size: 1.2rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="header">
+        <h1>JENI AI ❤️</h1>
+        <button class="theme-btn" onclick="toggleTheme()"><i id="tIcon" class="fas fa-moon"></i></button>
+    </div>
+    <div id="chat-window"><div class="msg bot-msg">Hmph! Aa gaye tum? Nayi key dalo pehle! 🙄</div></div>
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="Jeni se baat karo..." autocomplete="off">
+        <button class="send-btn" onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
+
+<script>
+    let API_KEY = localStorage.getItem('jeni_key');
+    if (!API_KEY) {
+        API_KEY = prompt("GitHub security ke liye key code mein nahi hai. Apni NAYI Groq Key yahan paste karo (ye sirf ek baar mangega):");
+        if(API_KEY) localStorage.setItem('jeni_key', API_KEY);
+    }
+
+    const box = document.getElementById('chat-window');
+    const input = document.getElementById('userInput');
+    let history = [{ role: "system", content: "Name: Jeni. Personality: Aggressive, sassy GF. Language: Hinglish." }];
+
+    function toggleTheme() {
+        document.body.classList.toggle('light-mode');
+        document.getElementById('tIcon').className = document.body.classList.contains('light-mode') ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    async function sendMsg() {
+        const text = input.value.trim();
+        if (!text || !API_KEY) return;
+        addB(text, 'user-msg'); input.value = "";
+        history.push({ role: "user", content: text });
+
+        try {
+            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${API_KEY}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ model: "llama3-8b-8192", messages: history })
+            });
+            const data = await res.json();
+            const reply = data.choices[0].message.content;
+            addB(reply, 'bot-msg');
+            history.push({ role: "assistant", content: reply });
+        } catch (e) {
+            addB("Bhai API fail ho gayi! Shayad key galat hai.", 'bot-msg');
+            localStorage.removeItem('jeni_key');
+        }
+    }
+
+    function addB(t, c) {
+        const d = document.createElement('div'); d.className = `msg ${c}`; d.innerText = t;
+        box.appendChild(d); box.scrollTop = box.scrollHeight;
+    }
+    input.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMsg(); });
+</script>
+</body>
+</html>
